@@ -1,0 +1,27 @@
+# Schema Registry
+dumps/
+
+out
+*.log
+
+# sbt specific
+.bsp
+dist/*
+target/
+
+## IntelliJ
+*.iml
+.idea
+
+## Metals
+.metals/
+project/metals.sbt
+project/project/
+.bloop/
+project/.bloop/
+
+## VScode
+.vscode/
+
+## Mac stuff
+.DS_Store
