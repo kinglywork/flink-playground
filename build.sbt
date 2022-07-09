@@ -41,3 +41,23 @@ assembly / assemblyMergeStrategy := {
   case PathList("META-INF", _ @_*) => MergeStrategy.discard
   case _ => MergeStrategy.first
 }
+
+scalacOptions ++= Seq(
+  "-unchecked",
+  "-deprecation",
+  "-feature",
+  "-Ywarn-dead-code",
+  "-Ywarn-numeric-widen",
+  "-Ywarn-value-discard",
+  "-Ywarn-unused-import",
+  "-language:higherKinds",
+  "-Ypartial-unification",
+  "-Xfatal-warnings"
+)
+
+Test / scalacOptions ++= Seq("-Yrangepos")
+
+Test / scalacOptions --= Seq(
+  "-Ywarn-value-discard",
+  "-Ywarn-numeric-widen"
+)

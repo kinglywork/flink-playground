@@ -1,0 +1,10 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+. deploy/config.sh
+
+docker pull "$DEPENDENCIES_NAME:latest"
+
+./auto/dev-environment bash -c "./support/dev/run"

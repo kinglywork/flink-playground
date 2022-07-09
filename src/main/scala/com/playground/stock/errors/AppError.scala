@@ -1,4 +1,4 @@
-package com.playground.errors
+package com.playground.stock.errors
 
 import io.circe._
 import io.circe.generic.semiauto._

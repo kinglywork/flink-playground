@@ -1,0 +1,30 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+. deploy/config.sh
+
+DOCKER_IMAGE_TIMESTAMP=$(TZ=Australia/Melbourne date +'%Y%m%d-%H%M%S')
+FULL_NAME="$DEPENDENCIES_NAME:$DOCKER_IMAGE_TIMESTAMP"
+SHORT_NAME="$DEPENDENCIES_NAME:$DOCKER_IMAGE_TAG"
+
+echo "INFO: Building image $SHORT_NAME"
+docker pull "$DEPENDENCIES_NAME:latest" || true
+docker build \
+  --build-arg sbt_version="$SBT_VERSION" \
+  --cache-from "$DEPENDENCIES_NAME:latest" \
+  --file dependencies.dockerfile \
+  --tag "$SHORT_NAME" \
+  .
+
+if [[ -z ${BUILD_NO_DEPLOY:-} ]] ; then
+  echo "INFO: Tagging and pushing $FULL_NAME"
+  docker tag "$SHORT_NAME" "$FULL_NAME"
+
+  echo "INFO: pushing $FULL_NAME to ECR"
+  docker push "$SHORT_NAME"
+  docker push "$FULL_NAME"
+else
+  echo "INFO: Not tagging or pushing as requested. Unset BUILD_NO_DEPLOY to push"
+fi

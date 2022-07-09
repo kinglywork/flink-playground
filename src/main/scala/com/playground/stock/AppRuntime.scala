@@ -1,4 +1,4 @@
-package com.playground
+package com.playground.stock
 
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
@@ -11,6 +11,6 @@ class AppRuntime(config: Config) {
 
     wordStream.print()
 
-    env.execute(config.appName)
+    val _ = env.execute(config.appName)
   }
 }

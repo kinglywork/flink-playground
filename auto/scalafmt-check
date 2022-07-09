@@ -1,0 +1,6 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+./auto/dev-environment sbt -v -Dsbt.ci=true scalafmtSbtCheck scalafmtCheckAll

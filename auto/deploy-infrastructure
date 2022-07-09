@@ -1,0 +1,12 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+. deploy/config.sh
+
+auto/stackup "$INFRASTRUCTURE_NAME" up \
+  --template deploy/infrastructure.template.yml \
+  --tags deploy/tags.yml \
+  --region ap-southeast-2 \
+  --override "BucketName=$JAR_BUCKET_NAME"

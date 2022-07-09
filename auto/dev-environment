@@ -1,0 +1,14 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+. deploy/config.sh
+
+trap "docker-compose down --volumes --remove-orphans" 0
+
+SERVICE=${SERVICE:-dev}
+
+#docker-compose pull "$SERVICE"
+
+docker-compose run --rm --service-ports "$SERVICE" "$@"

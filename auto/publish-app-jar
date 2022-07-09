@@ -1,0 +1,10 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+. deploy/config.sh
+
+echo "Deploying jar $JAR_FILE_KEY"
+
+aws s3 cp target/app.jar "s3://$JAR_BUCKET_NAME/$JAR_FILE_KEY"

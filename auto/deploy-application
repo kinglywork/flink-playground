@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+. deploy/config.sh
+
+auto/stackup "$APP_NAME" up \
+  --template deploy/application.template.yml \
+  --tags deploy/tags.yml \
+  --region ap-southeast-2 \
+  --override "JarBucketArn=arn:aws:s3:::$JAR_BUCKET_NAME" \
+  --override "JarFileKey=$JAR_FILE_KEY" \
+  --override "AppName=$APP_NAME" \
+  --override "SchemaRegistryUrl=$SCHEMA_REGISTRY_URL" \
+  --override "KafkaBootstrapServers=$KAFKA_BOOTSTRAP_SERVERS" \

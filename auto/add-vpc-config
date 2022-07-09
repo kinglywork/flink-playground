@@ -1,0 +1,50 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+. deploy/config.sh
+
+VPC_JSON_SETTINGS=$VPC_JSON_SETTINGS
+
+normalize_vpc_settings() {
+  local INPUT="$1"
+  echo "$INPUT" | jq '{ SubnetIds: .SubnetIds | sort, SecurityGroupIds: .SecurityGroupIds | sort }'
+}
+
+add_vpc_config() {
+  local APP_VERSION="$1"
+  echo "Adding VPC configuration"
+  aws kinesisanalyticsv2 add-application-vpc-configuration --cli-input-json \
+    '{ "ApplicationName": "'"$APP_NAME"'", "CurrentApplicationVersionId": '"$APP_VERSION"', "VpcConfiguration": '"$VPC_JSON_SETTINGS"' }'
+}
+
+delete_vpc_config() {
+  local APP_VERSION="$1"
+  local VPC_CONFIGURATION_ID="$2"
+  echo "Deleting existing VPC configuration"
+  aws kinesisanalyticsv2 delete-application-vpc-configuration \
+    --application-name "$APP_NAME" \
+    --current-application-version-id "$APP_VERSION" \
+    --vpc-configuration-id "$VPC_CONFIGURATION_ID"
+}
+
+APP_INFO_OR_ERROR=$(aws kinesisanalyticsv2 describe-application --application-name "$APP_NAME" 2>&1)
+if [[ $APP_INFO_OR_ERROR =~ "An error occurred" ]]; then
+  echo "$APP_INFO_OR_ERROR"
+  exit 1
+fi
+
+APP_VERSION=$(echo "$APP_INFO_OR_ERROR" | jq .ApplicationDetail.ApplicationVersionId)
+CURRENT_VPC_CONFIG="$(echo "$APP_INFO_OR_ERROR" | jq .ApplicationDetail.ApplicationConfigurationDescription.VpcConfigurationDescriptions[0])"
+if [ "$CURRENT_VPC_CONFIG" = "null" ]; then
+  echo "VPC configuration does not exist"
+  add_vpc_config "$APP_VERSION"
+elif [ "$(normalize_vpc_settings "$CURRENT_VPC_CONFIG")" != "$(normalize_vpc_settings "$VPC_JSON_SETTINGS")" ]; then
+  VPC_CONFIGURATION_ID=$(echo "$CURRENT_VPC_CONFIG" | jq '.VpcConfigurationId')
+  echo "VPC configuration has changed"
+  delete_vpc_config "$APP_VERSION" "$VPC_CONFIGURATION_ID"
+  add_vpc_config "$APP_VERSION"
+else
+  echo "VPC configuration has not changed. No deploy needed"
+fi

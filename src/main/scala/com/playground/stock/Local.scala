@@ -1,4 +1,4 @@
-package com.playground
+package com.playground.stock
 
 import java.net.URI
 

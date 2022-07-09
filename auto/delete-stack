@@ -1,0 +1,70 @@
+#!/bin/bash
+set -eufo pipefail
+
+ENV=$1
+VERSION=$2
+
+function check_input(){
+  if  [ ! -n "$2" ] ;then
+      echo "you have not input $1"
+  fi
+}
+
+function execute_and_check_result() {
+  local EXEC_COMMAND=$1
+
+  echo "$EXEC_COMMAND"
+  eval "$EXEC_COMMAND"
+  if [ $? -ne 0 ]; then
+      echo "$EXEC_COMMAND failed."
+      exit 1
+  else
+      echo "$EXEC_COMMAND succeed"
+  fi
+}
+
+function confirmation() {
+  local ACTION_TO_CONFIRM=$1
+
+  while (true); do
+    read -r -p "$ACTION_TO_CONFIRM, are you sure want to continue?(Y/N)" input
+
+    case $input in
+      [yY]es|YES|[yY])
+      echo $ACTION_TO_CONFIRM
+      break
+      ;;
+
+      [nN]o|NO|[nN])
+      echo "Exit process..."
+      exit 1
+      ;;
+
+      *)
+      echo "Invalid input, please try again...."
+      ;;
+
+    esac
+  done
+}
+
+check_input "env" "$ENV"
+check_input "version" "$VERSION"
+
+export ENVIRONMENT="$ENV"
+ENVIRONMENT_SUFFIX=""
+
+if [ "$ENVIRONMENT" != "prod" ]; then
+  ENVIRONMENT_SUFFIX="-$ENVIRONMENT"
+fi
+
+STACK_NAME_TO_BE_DELETED="flink-playground$ENVIRONMENT_SUFFIX-v$VERSION"
+
+confirmation "Will delete stack $STACK_NAME_TO_BE_DELETED in $ENV environment"
+
+execute_and_check_result "aws cloudformation delete-stack --stack-name $STACK_NAME_TO_BE_DELETED"
+
+echo "Wait for the stack delete complete..."
+execute_and_check_result "aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME_TO_BE_DELETED"
+
+echo "delete finish!"

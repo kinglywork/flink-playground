@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+SCHEMA_GENERATOR_NAME=${SCHEMA_GENERATOR_NAME:-"com.playground.infrastructure.schema.CodecToSchema"}
+
+echo "Generating the schemas now..."
+
+trap "docker-compose down --volumes --remove-orphans" 0
+
+docker-compose pull dev
+
+docker-compose run \
+  --rm \
+  --service-ports \
+  --no-deps \
+  --entrypoint bash \
+  dev sbt -v -Dsbt.ci=true "runMain $SCHEMA_GENERATOR_NAME"

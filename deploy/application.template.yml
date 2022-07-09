@@ -1,0 +1,109 @@
+Parameters:
+  JarBucketArn:
+    Type: String
+  JarFileKey:
+    Type: String
+  AppName:
+    Type: String
+  SchemaRegistryUrl:
+    Type: String
+  KafkaBootstrapServers:
+    Type: String
+
+Resources:
+  KinesisApplicationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Policies:
+        - PolicyName: !Sub kinesis-analytics-service-${AppName}-${AWS::Region}
+          PolicyDocument:
+            Statement:
+              - Sid: AllowS3Access
+                Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource:
+                  - !Sub ${JarBucketArn}/*
+              - Sid: LogPermissions
+                Effect: Allow
+                Action:
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                  - logs:DescribeLogGroups
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${KinesisLogGroup}:log-stream:*
+              - Sid: VPCReadOnlyPermissions
+                Effect: Allow
+                Action:
+                  - ec2:DescribeVpcs
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeDhcpOptions
+                Resource:
+                  - "*"
+              - Sid: ENIReadWritePermissions
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:CreateNetworkInterfacePermission
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource:
+                  - "*"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - kinesisanalytics.amazonaws.com
+
+  KinesisLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+
+  KinesisLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref KinesisLogGroup
+
+  KinesisApplication:
+    Type: AWS::KinesisAnalyticsV2::Application
+    Properties:
+      ApplicationName: !Ref AppName
+      RuntimeEnvironment: FLINK-1_13
+      ServiceExecutionRole: !GetAtt KinesisApplicationRole.Arn
+      ApplicationConfiguration:
+        ApplicationCodeConfiguration:
+          CodeContent:
+            S3ContentLocation:
+              BucketARN: !Ref JarBucketArn
+              FileKey: !Ref JarFileKey
+          CodeContentType: ZIPFILE
+        ApplicationSnapshotConfiguration:
+          SnapshotsEnabled: true
+        FlinkApplicationConfiguration:
+          MonitoringConfiguration:
+            ConfigurationType: CUSTOM
+            LogLevel: INFO
+            MetricsLevel: OPERATOR
+        EnvironmentProperties:
+          PropertyGroups:
+            - PropertyGroupId: environmentProperties
+              PropertyMap:
+                APP_NAME: !Ref AppName
+                APP_VERSION: 0.0.1
+                SCHEMA_REGISTRY_URL: !Ref SchemaRegistryUrl
+                KAFKA_BOOTSTRAP_SERVERS: !Ref KafkaBootstrapServers
+                SECURITY_PROTOCOL: SSL
+
+  KinesisApplicationLogging:
+    Type: AWS::KinesisAnalyticsV2::ApplicationCloudWatchLoggingOption
+    Properties:
+      ApplicationName: !Ref KinesisApplication
+      CloudWatchLoggingOption:
+        LogStreamARN: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${KinesisLogGroup}:log-stream:${KinesisLogStream}

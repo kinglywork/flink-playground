@@ -1,0 +1,19 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+STACKUP_VERSION=1.5.0
+STACKUP_IMAGE="realestate/stackup"
+
+exec docker run \
+  --rm \
+  --workdir /cwd \
+  --volume "$PWD:/cwd:ro" \
+  --env AWS_ACCESS_KEY_ID \
+  --env AWS_SECRET_ACCESS_KEY \
+  --env AWS_SECURITY_TOKEN \
+  --env AWS_SESSION_TOKEN \
+  --env AWS_DEFAULT_REGION \
+  "$STACKUP_IMAGE:$STACKUP_VERSION" \
+  "$@"

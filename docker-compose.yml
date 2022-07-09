@@ -1,6 +1,30 @@
 version: '3.8'
 
 services:
+  dev:
+    image: 639347700193.dkr.ecr.ap-southeast-2.amazonaws.com/property-stream/sold-transactions-projection-dependencies:latest
+    command: bash
+    entrypoint: [ support/dev/entrypoint ]
+    working_dir: /work
+    depends_on:
+      - ksqldb-server
+      - kibana
+    environment:
+      AWS_ACCESS_KEY_ID:
+      AWS_SESSION_TOKEN:
+      AWS_SECRET_ACCESS_KEY:
+      AWS_DEFAULT_REGION: ap-southeast-2
+      AWS_REGION: ap-southeast-2
+      BUILD_NUMBER: ${BUILDKITE_BUILD_NUMBER:-local}
+      APP_NAME: sold-transactions-projection-local
+      APP_VERSION: 0
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_BOOTSTRAP_SERVERS: broker:9092
+      SECURITY_PROTOCOL: PLAINTEXT
+      WAIT_FOR_HOST: http://schema-registry:8081
+    volumes:
+      - .:/work
+
   schema-registry:
     image: confluentinc/cp-schema-registry:7.1.0-1-ubi8@sha256:0a8fc44c93ead41fb05749a136a6abea6d4e86a0e4f760f17a35ed88fe709be0
     hostname: schema-registry
@@ -96,7 +120,6 @@ services:
     image: confluentinc/ksqldb-cli:0.25.1
     container_name: ksqldb-cli
     depends_on:
-      - broker
       - ksqldb-server
     entrypoint: /bin/sh
     tty: true
@@ -120,7 +143,7 @@ services:
     restart: always
     container_name: kibana
     hostname: kibana
-    ports:
-      - 5601:5601
     depends_on:
       - elasticsearch
+    ports:
+      - 5601:5601

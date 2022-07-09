@@ -1,0 +1,112 @@
+#!/bin/bash
+set -eufo pipefail
+
+# TEMP: Shitty script until there is a proper Schema Registry deployed
+
+SCHEMA_REGISTRY_URL=$SCHEMA_REGISTRY_URL
+
+function set_schema_compatibility() {
+    AVRO_SUBJECT=$1
+    SCHEMA_FILE_NAME=$2
+    COMPATIBILITY=$3
+
+    STATUS_CODE=$(curl -s -o /tmp/schema-migration-last-log -w "%{http_code}" -X PUT -H "Content-Type: application/json" \
+      -d "{\"compatibility\":\"$COMPATIBILITY\"}" "$SCHEMA_REGISTRY_URL"/config/"$AVRO_SUBJECT")
+
+    if [ "$STATUS_CODE" != "200" ]; then
+      echo "ERROR: Received a non-200 reply from the Schema registry when set compatibility to $COMPATIBILITY for $SCHEMA_FILE_NAME"
+      cat /tmp/schema-migration-last-log
+      echo "Failing Payload:"
+      echo "$SCHEMA_PAYLOAD"
+      exit 1
+    else
+      echo "Successfully set compatibility to $COMPATIBILITY for $SCHEMA_FILE_NAME!"
+    fi
+}
+
+function migrate_schema() {
+  AVRO_SUBJECT=$1
+  SCHEMA_FILE_NAME=$2
+  SCHEMA_PAYLOAD_FILE=$3
+
+  echo "Adding $SCHEMA_FILE_NAME to $AVRO_SUBJECT"
+
+  STATUS_CODE=$(curl -s -o /tmp/schema-migration-last-log -w "%{http_code}" -X POST \
+    -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+    --data @"$SCHEMA_PAYLOAD_FILE" "$SCHEMA_REGISTRY_URL"/subjects/"$AVRO_SUBJECT"/versions)
+
+  if [ "$STATUS_CODE" != "200" ]; then
+    echo "ERROR: Received a non-200 reply from the Schema registry for schema: $SCHEMA_FILE_NAME"
+    cat /tmp/schema-migration-last-log
+    echo "Failing Payload:"
+    echo "$SCHEMA_PAYLOAD"
+    exit 1
+  else
+    echo "Successfully added $SCHEMA_FILE_NAME to Schema registry!"
+  fi
+}
+
+function test_schema_compatibility() {
+  AVRO_SUBJECT=$1
+  SCHEMA_FILE_NAME=$2
+  SCHEMA_PAYLOAD_FILE=$3
+
+  RESPONSE_BODY=$(curl -s -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+    --data @"$SCHEMA_PAYLOAD_FILE" "$SCHEMA_REGISTRY_URL"/compatibility/subjects/"$AVRO_SUBJECT"/versions/latest)
+
+  IS_COMPATIBLE=$(echo "$RESPONSE_BODY" | jq .is_compatible)
+
+  if [ "$IS_COMPATIBLE" != "true" ]; then
+    ERROR_CODE=$(echo "$RESPONSE_BODY" | jq .error_code)
+
+    # 40401 indicates that the schema does not exist in the registry. Therefore, schema is automatically compatible.
+    if [ "$ERROR_CODE" -eq 40401 ]; then
+      echo "$SCHEMA_FILE_NAME does not yet exist in Schema Registry. Skipping compatibility check..."
+    else
+      echo "ERROR: $SCHEMA_FILE_NAME is not compatible with the previous version! Please check that your schema is in the correct format."
+      echo "Response from Schema Registry: $RESPONSE_BODY"
+      echo "Schema payload sent: $SCHEMA_PAYLOAD"
+      exit 1
+    fi
+  else
+    echo "$SCHEMA_FILE_NAME is compatible!"
+  fi
+}
+
+function process_schema_file() {
+
+  AVRO_NAMESPACE=$1
+  AVRO_SUBJECT=$2
+  SCHEMA_FILE_NAME=$3
+  COMPATIBILITY=${4:-BACKWARD}
+
+  echo "Processing $SCHEMA_FILE_NAME..."
+
+  SCHEMA=$(cat src/main/avro/"$AVRO_NAMESPACE"/"$SCHEMA_FILE_NAME".avsc)
+
+  SCHEMA_PAYLOAD=$(echo '{"schema":""}' | jq --arg schema "$SCHEMA" '.schema = $schema')
+
+  TMP_SCHEMA_PAYLOAD_FILE=$(mktemp)
+  echo "$SCHEMA_PAYLOAD" >"$TMP_SCHEMA_PAYLOAD_FILE"
+
+  DRY_RUN=${DRY_RUN:-false}
+
+  if [ "$DRY_RUN" == "true" ]; then
+    test_schema_compatibility "$AVRO_SUBJECT" "$SCHEMA_FILE_NAME" "$TMP_SCHEMA_PAYLOAD_FILE"
+  else
+    migrate_schema "$AVRO_SUBJECT" "$SCHEMA_FILE_NAME" "$TMP_SCHEMA_PAYLOAD_FILE"
+    set_schema_compatibility "$AVRO_SUBJECT" "$SCHEMA_FILE_NAME" "$COMPATIBILITY"
+  fi
+
+  rm "$TMP_SCHEMA_PAYLOAD_FILE"
+}
+
+process_schema_file "com.playground" "canary-value" "Canary" "FORWARD_TRANSITIVE"
+
+LOCAL_RUN=${LOCAL_RUN:-false}
+
+if [ "$LOCAL_RUN" == "true" ]; then
+
+  echo "local run"
+
+fi
