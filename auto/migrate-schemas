@@ -1,8 +1,6 @@
 #!/bin/bash
 set -eufo pipefail
 
-# TEMP: Shitty script until there is a proper Schema Registry deployed
-
 SCHEMA_REGISTRY_URL=$SCHEMA_REGISTRY_URL
 
 function set_schema_compatibility() {
@@ -101,7 +99,7 @@ function process_schema_file() {
   rm "$TMP_SCHEMA_PAYLOAD_FILE"
 }
 
-process_schema_file "com.playground" "canary-value" "Canary" "FORWARD_TRANSITIVE"
+process_schema_file "com.playground" "StockTransaction-value" "StockTransaction" "FORWARD_TRANSITIVE"
 
 LOCAL_RUN=${LOCAL_RUN:-false}
 

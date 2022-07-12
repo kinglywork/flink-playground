@@ -1,0 +1,39 @@
+{
+  "type": "record",
+  "name": "StockTransaction",
+  "namespace": "com.playground",
+  "fields": [
+    {
+      "name": "symbol",
+      "type": "string"
+    },
+    {
+      "name": "sector",
+      "type": "string"
+    },
+    {
+      "name": "industry",
+      "type": "string"
+    },
+    {
+      "name": "shares",
+      "type": "int"
+    },
+    {
+      "name": "sharePrice",
+      "type": "double"
+    },
+    {
+      "name": "customerId",
+      "type": "string"
+    },
+    {
+      "name": "transactionTimestamp",
+      "type": "string"
+    },
+    {
+      "name": "purchase",
+      "type": "boolean"
+    }
+  ]
+}
