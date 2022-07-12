@@ -2,8 +2,7 @@ package com.playground.stock
 
 import cats.implicits.toBifunctorOps
 import com.amazonaws.services.kinesisanalytics.runtime.KinesisAnalyticsRuntime
-import com.playground.errors.ErrorOr
-import com.playground.stock.errors.{AppError, ConfigError}
+import com.playground.errors.{AppError, ConfigError, ErrorOr}
 import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder
 

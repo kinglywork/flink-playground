@@ -1,6 +1,6 @@
 package com.playground.stock
 
-import com.playground.stock.errors.AppError
+import com.playground.errors.AppError
 import org.slf4j.LoggerFactory
 
 object Main {

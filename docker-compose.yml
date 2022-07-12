@@ -4,10 +4,10 @@ services:
   dev:
     image: 639347700193.dkr.ecr.ap-southeast-2.amazonaws.com/property-stream/sold-transactions-projection-dependencies:latest
     command: bash
-    entrypoint: [ support/dev/entrypoint ]
+    container_name: dev
     working_dir: /work
     depends_on:
-      - ksqldb-server
+      - schema-registry
       - kibana
     environment:
       AWS_ACCESS_KEY_ID:
@@ -82,6 +82,30 @@ services:
     volumes:
       - .:/work
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    container_name: elasticsearch
+    hostname: elasticsearch
+    environment:
+      - xpack.security.enabled=false
+      - xpack.monitoring.enabled=false
+      - cluster.name=int-tests-cluster
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+      - http.port=9200
+      - discovery.type=single-node
+    ports:
+      - 0.0.0.0:9200:9200
+
+  kibana:
+    image: kibana:7.16.3
+    restart: always
+    container_name: kibana
+    hostname: kibana
+    depends_on:
+      - elasticsearch
+    ports:
+      - 5601:5601
+
   ksqldb-server:
     image: confluentinc/ksqldb-server:0.26.0
     hostname: ksqldb-server
@@ -123,27 +147,3 @@ services:
       - ksqldb-server
     entrypoint: /bin/sh
     tty: true
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
-    container_name: elasticsearch
-    hostname: elasticsearch
-    environment:
-      - xpack.security.enabled=false
-      - xpack.monitoring.enabled=false
-      - cluster.name=int-tests-cluster
-      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
-      - http.port=9200
-      - discovery.type=single-node
-    ports:
-      - 0.0.0.0:9200:9200
-
-  kibana:
-    image: kibana:7.16.3
-    restart: always
-    container_name: kibana
-    hostname: kibana
-    depends_on:
-      - elasticsearch
-    ports:
-      - 5601:5601
