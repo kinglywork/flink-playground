@@ -18,6 +18,7 @@ val logbackVersion = "1.2.3"
 val vulcanVersion = "1.7.1"
 val confluentVersion = "6.2.0"
 val awsKinesisAnalyticsVersion = "1.2.0"
+val javaFakerVersion = "1.0.2"
 
 libraryDependencies ++= Seq(
   "org.typelevel"                 %% "cats-core"                      % catsVersion,
@@ -33,6 +34,7 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"                %  "logback-classic"                % logbackVersion,
   "org.slf4j"                     %  "slf4j-api"                      % slf4jVersion,
   "com.amazonaws"                 %  "aws-kinesisanalytics-runtime"   % awsKinesisAnalyticsVersion,
+  "com.github.javafaker"          % "javafaker"                       % javaFakerVersion          excludeAll(ExclusionRule("ch.qos.logback"), ExclusionRule("org.slf4j")),
 )
 
 assembly / assemblyOutputPath := new File("target/app.jar")
@@ -47,7 +49,6 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
   "-Ywarn-dead-code",
-  "-Ywarn-numeric-widen",
   "-Ywarn-value-discard",
   "-Ywarn-unused-import",
   "-language:higherKinds",

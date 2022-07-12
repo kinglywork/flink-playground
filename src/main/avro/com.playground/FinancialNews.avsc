@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "FinancialNews",
+  "namespace": "com.playground",
+  "fields": [
+    {
+      "name": "industry",
+      "type": "string"
+    },
+    {
+      "name": "content",
+      "type": "string"
+    }
+  ]
+}

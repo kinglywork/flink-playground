@@ -12,9 +12,11 @@ import scala.util.Try
 final case class Config(
                          appName: String,
                          version: String,
-                         schemaRegistryUrl: URI,
-                         kafkaBootstrapServers: Vector[URI],
+                         schemaRegistryUrl: String,
+                         kafkaBootstrapServers: String,
                          securityProtocol: String,
+                         stockTransactionTopic: String,
+                         financialNewsTopic: String
                        )
 
 object Config {
@@ -26,17 +28,19 @@ object Config {
   def fromEnvironment: ErrorOr[Config] = for {
     appName <- lookup("APP_NAME")
     version <- lookup("APP_VERSION")
-    schemaRegistryUrl <- lookupAndParse("SCHEMA_REGISTRY_URL")(new URI(_))
-    kafkaBootstrapServers <- lookupAndParse("KAFKA_BOOTSTRAP_SERVERS")(value =>
-      value.split(",").map(new URI(_)).toVector
-    )
+    schemaRegistryUrl <- lookup("SCHEMA_REGISTRY_URL")
+    kafkaBootstrapServers <- lookup("KAFKA_BOOTSTRAP_SERVERS")
     securityProtocol <- lookup("SECURITY_PROTOCOL")
+    stockTransactionTopic <- lookup("STOCK_TRANSACTION_TOPIC")
+    stockTransactionTopic <- lookup("FINANCIAL_NEWS_TOPIC")
   } yield Config(
     appName,
     version,
     schemaRegistryUrl,
     kafkaBootstrapServers,
     securityProtocol,
+    stockTransactionTopic,
+    stockTransactionTopic
   )
 
   private def lookup(name: String): ErrorOr[String] =
