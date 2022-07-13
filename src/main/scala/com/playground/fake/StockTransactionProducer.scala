@@ -40,7 +40,7 @@ object StockTransactionProducer {
       })
 
       counter += 1
-      Thread.sleep(5000)
+      Thread.sleep(3000)
     }
   }
 

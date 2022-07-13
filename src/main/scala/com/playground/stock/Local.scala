@@ -2,6 +2,9 @@ package com.playground.stock
 
 import com.playground.fake.StockTransactionProducer
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
 
 object Local {
   def main(args: Array[String]): Unit = {
@@ -15,8 +18,10 @@ object Local {
       financialNewsTopic = "FinancialNews"
     )
 
-    StockTransactionProducer.run(config, 15, 50, 25)
+    Future {
+      StockTransactionProducer.run(config, 50, 50, 25)
+    }
 
-//    Main.runWithConfig(config)
+    Main.runWithConfig(config)
   }
 }
