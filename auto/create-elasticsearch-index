@@ -1,0 +1,26 @@
+#!/bin/bash
+set -eufo pipefail
+
+cd "$(dirname "$0")/.."
+
+. deploy/config.sh
+
+ES_INDEX_URL="$ES_SERVER/$ES_INDEX_NAME"
+
+ES_INDEX_RESPONSE="$(curl -I "$ES_INDEX_URL" 2>/dev/null | head -n 1 | cut -d$' ' -f2)"
+
+if [ "$ES_INDEX_RESPONSE" == "200" ]; then
+  echo "$ES_INDEX_NAME already exists"
+elif [ "$ES_INDEX_RESPONSE" == "404" ]; then
+  echo "Creating index $ES_INDEX_NAME"
+
+  ES_INDEX_CONFIG="$(jq -s '{"mappings":.[0], "settings": .[1]}' src/main/resources/mappings.json src/main/resources/settings.json)"
+
+  curl -X PUT "$ES_INDEX_URL" -H "Content-Type: application/json" -d"$ES_INDEX_CONFIG"
+
+  echo "Index $ES_INDEX_NAME is created"
+else
+  echo "Unexpected response when check index existence for $ES_INDEX_NAME"
+
+  exit 1
+fi

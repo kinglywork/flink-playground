@@ -13,6 +13,7 @@ ENVIRONMENT_SUFFIX=""
 SCHEMA_REGISTRY_URL="https://schema-registry"
 KAFKA_BOOTSTRAP_SERVERS="b-1.kafka-server.aaaaaa.c4.kafka.ap-southeast-2.amazonaws.com:9094,b-2.kafka-server.bbbbbb.c4.kafka.ap-southeast-2.amazonaws.com:9094,b-3.kafka-server.cccccc.c4.kafka.ap-southeast-2.amazonaws.com:9094"
 VPC_JSON_SETTINGS='{ "SubnetIds": ["subnet-111", "subnet-222", "subnet-333"], "SecurityGroupIds": ["sg-888"] }'
+ES_SERVER="https://es-server"
 
 if [ "$ENVIRONMENT" != "prod" ]; then
   ENVIRONMENT_SUFFIX="-$ENVIRONMENT"
@@ -22,6 +23,7 @@ if [ "$ENVIRONMENT" == "dev" ]; then
   SCHEMA_REGISTRY_URL="https://schema-registry-dev"
   KAFKA_BOOTSTRAP_SERVERS="b-1.kafka-server-dev.aaaaaa.c4.kafka.ap-southeast-2.amazonaws.com:9094,b-2.kafka-server-dev.bbbbbb.c4.kafka.ap-southeast-2.amazonaws.com:9094,b-3.kafka-server-dev.cccccc.c4.kafka.ap-southeast-2.amazonaws.com:9094"
   VPC_JSON_SETTINGS='{ "SubnetIds": ["subnet-444", "subnet-555", "subnet-666"], "SecurityGroupIds": ["sg-999"] }'
+  ES_SERVER="https://es-server-dev"
 fi
 
 # The app name contains the major and minor versions so a new pipeline is deployed for each minor
@@ -45,6 +47,8 @@ export DEPENDENCIES_NAME="$IMAGE_NAME-dependencies"
 export SCHEMA_REGISTRY_URL
 export KAFKA_BOOTSTRAP_SERVERS
 export VPC_JSON_SETTINGS
+export ES_SERVER
+export ES_INDEX_NAME="stock-share-volume-top-n-by-industry"
 
 SBT_VERSION=$(grep sbt.version ./project/build.properties | cut -d = -f 2)
 export SBT_VERSION

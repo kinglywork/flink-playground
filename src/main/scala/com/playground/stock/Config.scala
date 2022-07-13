@@ -1,6 +1,6 @@
 package com.playground.stock
 
-import cats.implicits.toBifunctorOps
+import cats.implicits.{toBifunctorOps, toTraverseOps}
 import com.amazonaws.services.kinesisanalytics.runtime.KinesisAnalyticsRuntime
 import com.playground.errors.{AppError, ConfigError, ErrorOr}
 import io.circe.Encoder
@@ -16,7 +16,12 @@ final case class Config(
                          kafkaBootstrapServers: String,
                          securityProtocol: String,
                          stockTransactionTopic: String,
-                         financialNewsTopic: String
+                         financialNewsTopic: String,
+                         esHostName: String,
+                         esHostPort: Int,
+                         esHostSchemaName: String,
+                         esIndexName: String,
+                         esFlushMaxActions: Option[Int] = Some(1)
                        )
 
 object Config {
@@ -32,7 +37,12 @@ object Config {
     kafkaBootstrapServers <- lookup("KAFKA_BOOTSTRAP_SERVERS")
     securityProtocol <- lookup("SECURITY_PROTOCOL")
     stockTransactionTopic <- lookup("STOCK_TRANSACTION_TOPIC")
-    stockTransactionTopic <- lookup("FINANCIAL_NEWS_TOPIC")
+    financialNewsTopic <- lookup("FINANCIAL_NEWS_TOPIC")
+    esHostName <- lookup("ES_HOST_NAME")
+    esHostPort <- lookupAndParse("ES_HOST_PORT")(_.toInt)
+    esHostSchemaName <- lookup("ES_HOST_SCHEMA_NAME")
+    esIndexName <- lookup("ES_INDEX_NAME")
+    esFlushMaxActions <- extractOptionFromEnv("ES_FLUSH_MAX_ACTIONS")(_.toInt)
   } yield Config(
     appName,
     version,
@@ -40,7 +50,12 @@ object Config {
     kafkaBootstrapServers,
     securityProtocol,
     stockTransactionTopic,
-    stockTransactionTopic
+    financialNewsTopic,
+    esHostName,
+    esHostPort,
+    esHostSchemaName,
+    esIndexName,
+    esFlushMaxActions
   )
 
   private def lookup(name: String): ErrorOr[String] =
@@ -50,6 +65,10 @@ object Config {
         Left[AppError, String](ConfigError(name, None, Some(new Error("Config value is not a String"))))
       case None => Left[AppError, String](ConfigError(name, None, Some(new Error("Cannot find config value"))))
     }
+
+  private def extractOptionFromEnv[A](key: String)(parse: String => A): ErrorOr[Option[A]] = {
+    sys.env.get(key).traverse { value => parseValue(key, value)(parse) }
+  }
 
   private def lookupApplicationProperties(name: String): Option[AnyRef] =
     for {

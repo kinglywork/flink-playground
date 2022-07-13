@@ -1,9 +1,9 @@
 package com.playground.stock
 
-import com.playground.fake.StockTransactionProducer
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+//import com.playground.fake.StockTransactionProducer
+//
+//import scala.concurrent.ExecutionContext.Implicits.global
+//import scala.concurrent.Future
 
 
 object Local {
@@ -15,12 +15,17 @@ object Local {
       kafkaBootstrapServers = "localhost:39092",
       securityProtocol = "PLAINTEXT",
       stockTransactionTopic = "StockTransaction",
-      financialNewsTopic = "FinancialNews"
+      financialNewsTopic = "FinancialNews",
+      esHostName = "localhost",
+      esHostPort = 9200,
+      esHostSchemaName = "http",
+      esIndexName = "stock-share-volume-top-n-by-industry",
+      esFlushMaxActions = Some(1)
     )
 
-    Future {
-      StockTransactionProducer.run(config, 50, 50, 25)
-    }
+//    Future {
+//      StockTransactionProducer.run(config, 50, 50, 25)
+//    }
 
     Main.runWithConfig(config)
   }

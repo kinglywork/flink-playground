@@ -1,0 +1,13 @@
+{
+  "index": {
+    "search.slowlog.threshold.query.warn": "180ms",
+    "search.slowlog.threshold.query.info": "90ms",
+    "search.slowlog.threshold.fetch.warn": "200ms",
+    "search.slowlog.threshold.fetch.info": "100ms",
+    "indexing.slowlog.threshold.index.warn": "1s",
+    "indexing.slowlog.threshold.index.info": "500ms",
+    "refresh_interval": "1s",
+    "number_of_shards": "1",
+    "number_of_replicas": "1"
+  }
+}

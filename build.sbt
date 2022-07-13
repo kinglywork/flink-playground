@@ -25,6 +25,7 @@ libraryDependencies ++= Seq(
   "org.apache.flink"              %% "flink-streaming-scala"          % flinkVersion                % "provided",
   "org.apache.flink"              %% "flink-clients"                  % flinkVersion                % "provided",
   "org.apache.flink"              %% "flink-connector-kafka"          % flinkVersion,
+  "org.apache.flink"              %% "flink-connector-elasticsearch7" % flinkVersion,
   "com.github.fd4s"               %% "vulcan"                         % vulcanVersion,
   "com.github.fd4s"               %% "vulcan-generic"                 % vulcanVersion,
   "io.circe"                      %% "circe-core"                     % circeVersion,
