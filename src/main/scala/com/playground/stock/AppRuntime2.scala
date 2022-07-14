@@ -4,7 +4,8 @@ import com.playground.avro.{CodecForDeserialize, FlinkAvroSerdes, KafkaRecord, T
 import com.playground.connector.KafkaSource
 import com.playground.errors.ErrorOr
 import com.playground.function.HandleDeserializationError
-import com.playground.stock.model.{FinancialNews, StockTransaction, TransactionSummary, TransactionSummaryAndFinancialNews}
+import com.playground.stock.model.{FinancialNews, StockTransaction, TransactionSummary}
+import org.apache.flink.api.common.eventtime.{SerializableTimestampAssigner, WatermarkStrategy}
 import org.apache.flink.api.common.functions.AggregateFunction
 import org.apache.flink.api.java.functions.KeySelector
 import org.apache.flink.api.scala.createTypeInformation
@@ -12,6 +13,8 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer
+
+import java.time.{Duration, ZoneOffset}
 
 class AppRuntime2(config: Config) {
   def start(): Unit = {
@@ -25,10 +28,12 @@ class AppRuntime2(config: Config) {
           case _ => Vector()
         }
       })
-      .keyBy(new KeySelector[StockTransaction, TransactionSummary]() {
-        override def getKey(stockTransaction: StockTransaction): TransactionSummary =
-          TransactionSummary(stockTransaction)
-      })
+      .assignTimestampsAndWatermarks(createWaterMarkStrategy())
+    transactionSummaryStream.print()
+    transactionSummaryStream.keyBy(new KeySelector[StockTransaction, TransactionSummary]() {
+      override def getKey(stockTransaction: StockTransaction): TransactionSummary =
+        TransactionSummary(stockTransaction)
+    })
       .window(SlidingProcessingTimeWindows.of(Time.seconds(10), Time.seconds(5)))
       .aggregate(new AggregateFunction[StockTransaction, TransactionSummary, TransactionSummary]() {
         override def createAccumulator(): TransactionSummary = TransactionSummary("", "", "", 0, 0)
@@ -47,6 +52,7 @@ class AppRuntime2(config: Config) {
             tradingCount = a.tradingCount + b.tradingCount
           )
       })
+      .print()
 
     val financialNewsStream = env.addSource(createFinancialNewsSource())
       .flatMap(new HandleDeserializationError[KafkaRecord[TombstoneOr[FinancialNews]]]())
@@ -57,18 +63,17 @@ class AppRuntime2(config: Config) {
         }
       })
 
-    transactionSummaryStream
-      .connect(financialNewsStream)
-      .map(TransactionSummaryAndFinancialNews.fromTransactionSummary, TransactionSummaryAndFinancialNews.fromFinancialNews)
-      .keyBy(_.industry)
-      .reduce(TransactionSummaryAndFinancialNews.aggregate _)
-      .flatMap(transactionAndNews => {
-        (transactionAndNews.maybeTransactionSummary, transactionAndNews.maybeFinancialNews) match {
-          case (Some(transaction), Some(news)) => Vector(s"${transaction.customerId} purchased ${transaction.totalShares} related to news: ${news.content}")
-          case _ => Vector()
-        }
-      })
-      .print()
+    //    transactionSummaryStream
+    //      .connect(financialNewsStream)
+    //      .map(TransactionSummaryAndFinancialNews.fromTransactionSummary, TransactionSummaryAndFinancialNews.fromFinancialNews)
+    //      .keyBy(_.industry)
+    //      .reduce(TransactionSummaryAndFinancialNews.aggregate _)
+    //      .flatMap(transactionAndNews => {
+    //        (transactionAndNews.maybeTransactionSummary, transactionAndNews.maybeFinancialNews) match {
+    //          case (Some(transaction), Some(news)) => Vector(s"${transaction.customerId} purchased ${transaction.totalShares} related to news: ${news.content}")
+    //          case _ => Vector()
+    //        }
+    //      })
 
     val _ = env.execute(config.appName)
   }
@@ -116,4 +121,12 @@ class AppRuntime2(config: Config) {
     )
     financialNewsSource
   }
+
+  private def createWaterMarkStrategy(): WatermarkStrategy[StockTransaction] =
+    WatermarkStrategy
+      .forBoundedOutOfOrderness[StockTransaction](Duration.ofSeconds(10))
+      .withTimestampAssigner(new SerializableTimestampAssigner[StockTransaction] {
+        override def extractTimestamp(element: StockTransaction, recordTimestamp: Long): Long =
+          element.transactionTimestamp.toEpochSecond(ZoneOffset.ofHours(8))
+      })
 }
