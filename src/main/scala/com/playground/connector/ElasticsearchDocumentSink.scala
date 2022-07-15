@@ -1,7 +1,7 @@
 package com.playground.connector
 
-import com.playground.stock.model.ShareVolume
-import com.playground.stock.model.elasticsearch.{DeleteAction, DocumentIndexAction, UpsertIndexAction}
+import com.playground.model.elasticsearch.{DeleteAction, DocumentIndexAction, UpsertIndexAction}
+import io.circe.Encoder
 import io.circe.syntax.EncoderOps
 import org.apache.flink.api.common.functions.RuntimeContext
 import org.apache.flink.streaming.connectors.elasticsearch.{ActionRequestFailureHandler, ElasticsearchSinkFunction, RequestIndexer}
@@ -22,7 +22,7 @@ object ElasticsearchDocumentSink {
   private lazy val LOG = LoggerFactory.getLogger("application")
   private val flushBackOffDelayMillis = 2000L
 
-  def apply(
+  def apply[T: Encoder](
     host: HttpHost,
     index: String,
     bulkFlushMaxActions: Option[Int]
@@ -56,25 +56,24 @@ object ElasticsearchDocumentSink {
     httpHosts
   }
 
-  private def makeIndexRequest(
+  private def makeIndexRequest[T: Encoder](
     index: String,
     id: String,
-    value: Vector[ShareVolume]
+    value: T
   ): IndexRequest = {
-    val json = value.asJson.noSpaces //TODO cannot sink array, can only sink object
     Requests
       .indexRequest(index)
       .id(id)
-      .source(json, XContentType.JSON)
+      .source(value.asJson.noSpaces, XContentType.JSON)
   }
 
   private def makeDeleteRequest(index: String, id: String): DeleteRequest = Requests.deleteRequest(index).id(id)
 
-  private def makeSinkFunction(index: String): ElasticsearchSinkFunction[DocumentIndexAction] =
+  private def makeSinkFunction[T: Encoder](index: String): ElasticsearchSinkFunction[DocumentIndexAction] =
     (element: DocumentIndexAction, _: RuntimeContext, indexer: RequestIndexer) =>
       element match {
-        case UpsertIndexAction(id, _, shareVolumes) =>
-          indexer.add(makeIndexRequest(index, id.value, shareVolumes))
+        case UpsertIndexAction(id, _, payload) =>
+          indexer.add(makeIndexRequest(index, id.value, payload.asInstanceOf[T]))
         case DeleteAction(id, _) =>
           indexer.add(makeDeleteRequest(index, id.value))
       }

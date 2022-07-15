@@ -1,16 +1,13 @@
 package com.playground.stock
 
 import com.playground.avro.{CodecForDeserialize, FlinkAvroSerdes, KafkaRecord, TombstoneOr}
-import com.playground.connector.{ElasticsearchDocumentSink, KafkaSource}
+import com.playground.connector.KafkaSource
 import com.playground.errors.ErrorOr
 import com.playground.function.HandleDeserializationError
-import com.playground.stock.model.elasticsearch.DocumentIndexAction
 import com.playground.stock.model.{ShareVolume, StockTransaction, TopStock}
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.flink.streaming.connectors.elasticsearch7.ElasticsearchSink
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer
-import org.apache.http.HttpHost
 
 class AppRuntime(config: Config) {
   def start(): Unit = {
@@ -33,15 +30,6 @@ class AppRuntime(config: Config) {
     topNStream.map(TopStock.serializeTopN _)
       .print()
 
-//    val esSinkStream: DataStream[DocumentIndexAction] = topNStream
-//      .map(shareVolumes =>
-//        UpsertIndexAction(
-//          id = DocumentId(shareVolumes.head.industry),
-//          shareVolumes = shareVolumes,
-//          processedAt = OffsetDateTime.now())
-//      )
-//    esSinkStream.addSink(createEsSink(config))
-
     val _ = env.execute(config.appName)
   }
 
@@ -60,18 +48,12 @@ class AppRuntime(config: Config) {
       ).deserializer(config.stockTransactionTopic, stockTransactionCodec)
 
     val stockTransactionSource = KafkaSource[ErrorOr[KafkaRecord[TombstoneOr[StockTransaction]]]](
-      config = config,
+      appName = config.appName,
+      kafkaBootstrapServers = config.kafkaBootstrapServers,
+      securityProtocol = config.securityProtocol,
       topic = config.stockTransactionTopic,
       deserializer = stockTransactionDeserializer
     )
     stockTransactionSource
-  }
-
-  private def createEsSink(config: Config): ElasticsearchSink[DocumentIndexAction] = {
-    ElasticsearchDocumentSink(
-      new HttpHost(config.esHostName, config.esHostPort, config.esHostSchemaName),
-      config.esIndexName,
-      config.esFlushMaxActions
-    )
   }
 }

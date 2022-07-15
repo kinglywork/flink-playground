@@ -1,10 +1,12 @@
 package com.playground.stock.model
 
 import vulcan.Codec
-
 import cats.implicits._
+
 import java.time.LocalDateTime
 import com.playground.avro._
+import io.circe.Encoder
+import io.circe.generic.semiauto.deriveEncoder
 
 final case class StockTransaction(
                                    symbol: String,
@@ -17,7 +19,7 @@ final case class StockTransaction(
                                    purchase: Boolean,
                                  )
 
-object StockTransaction{
+object StockTransaction {
   implicit val stockTransactionCodec: Codec[StockTransaction] = Codec.record[StockTransaction](
     name = "StockTransaction",
     namespace = "com.playground"
@@ -55,7 +57,9 @@ object StockTransaction{
         "purchase",
         _.purchase,
       )
-    ).mapN(StockTransaction.apply)
+      ).mapN(StockTransaction.apply)
   )
+
+  implicit val encoder: Encoder[StockTransaction] = deriveEncoder[StockTransaction]
 }
 
