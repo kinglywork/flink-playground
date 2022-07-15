@@ -15,12 +15,19 @@ class TopStock(maxSize: Int) extends KeyedProcessFunction[String, ShareVolume, V
                                ctx: KeyedProcessFunction[String, ShareVolume, Vector[ShareVolume]]#Context,
                                out: Collector[Vector[ShareVolume]]): Unit = {
     val topN = state.get().toVector
+
+    val hashBefore = topN.hashCode()
+
     val deduplicated = topN.filter(_.symbol != value.symbol) :+ value
     val sorted = deduplicated.sortBy(_.shares)(Ordering[Int].reverse)
     val newTopN = sorted.take(maxSize)
 
-    state.update(newTopN.asJava)
-    out.collect(newTopN)
+    val hashAfter = newTopN.hashCode()
+
+    if(hashBefore != hashAfter) {
+      state.update(newTopN.asJava)
+      out.collect(newTopN)
+    }
   }
 }
 

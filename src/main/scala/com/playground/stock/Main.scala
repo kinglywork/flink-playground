@@ -16,7 +16,7 @@ object Main {
   def runWithConfig(config: Config): Unit = {
     LOG.info(s"Main: starting ${config.appName}")
 
-    val appRuntime = new AppRuntime2(config)
+    val appRuntime = new AppRuntime(config)
     appRuntime.start()
   }
 
