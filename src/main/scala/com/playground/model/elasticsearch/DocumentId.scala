@@ -1,4 +1,4 @@
-package com.playground.stock.model.elasticsearch
+package com.playground.model.elasticsearch
 
 final case class DocumentId(value: String) extends AnyVal
 

@@ -1,6 +1,6 @@
-package com.playground.stock.model.elasticsearch
+package com.playground.model.elasticsearch
 
-import com.playground.stock.model.ShareVolume
+import io.circe.Encoder
 
 import java.time.OffsetDateTime
 
@@ -9,10 +9,10 @@ sealed trait DocumentIndexAction {
   val processedAt: OffsetDateTime
 }
 
-final case class UpsertIndexAction(
+final case class UpsertIndexAction[T: Encoder](
   id: DocumentId,
   processedAt: OffsetDateTime,
-  shareVolumes: Vector[ShareVolume]
+  payload: T
 ) extends DocumentIndexAction
 
 final case class DeleteAction(

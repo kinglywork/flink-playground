@@ -93,7 +93,9 @@ class AppRuntime2(config: Config) {
       ).deserializer(config.stockTransactionTopic, stockTransactionCodec)
 
     val stockTransactionSource = KafkaSource[ErrorOr[KafkaRecord[TombstoneOr[StockTransaction]]]](
-      config = config,
+      appName = config.appName,
+      kafkaBootstrapServers = config.kafkaBootstrapServers,
+      securityProtocol = config.securityProtocol,
       topic = config.stockTransactionTopic,
       deserializer = stockTransactionDeserializer
     )
@@ -115,7 +117,9 @@ class AppRuntime2(config: Config) {
       ).deserializer(config.financialNewsTopic, financialNewsCodec)
 
     val financialNewsSource = KafkaSource[ErrorOr[KafkaRecord[TombstoneOr[FinancialNews]]]](
-      config = config,
+      appName = config.appName,
+      kafkaBootstrapServers = config.kafkaBootstrapServers,
+      securityProtocol = config.securityProtocol,
       topic = config.financialNewsTopic,
       deserializer = financialNewsDeserializer
     )
