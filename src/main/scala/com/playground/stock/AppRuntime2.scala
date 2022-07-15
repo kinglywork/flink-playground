@@ -4,7 +4,7 @@ import com.playground.avro.{CodecForDeserialize, FlinkAvroSerdes, KafkaRecord, T
 import com.playground.connector.KafkaSource
 import com.playground.errors.ErrorOr
 import com.playground.function.HandleDeserializationError
-import com.playground.stock.model.{FinancialNews, StockTransaction, TransactionSummary}
+import com.playground.stock.model.{FinancialNews, StockTransaction, TransactionSummary, TransactionSummaryAndFinancialNews}
 import org.apache.flink.api.common.eventtime.{SerializableTimestampAssigner, WatermarkStrategy}
 import org.apache.flink.api.common.functions.AggregateFunction
 import org.apache.flink.api.java.functions.KeySelector
@@ -29,12 +29,11 @@ class AppRuntime2(config: Config) {
         }
       })
       .assignTimestampsAndWatermarks(createWaterMarkStrategy())
-    transactionSummaryStream.print()
-    transactionSummaryStream.keyBy(new KeySelector[StockTransaction, TransactionSummary]() {
-      override def getKey(stockTransaction: StockTransaction): TransactionSummary =
-        TransactionSummary(stockTransaction)
-    })
-      .window(SlidingProcessingTimeWindows.of(Time.seconds(10), Time.seconds(5)))
+      .keyBy(new KeySelector[StockTransaction, TransactionSummary]() {
+        override def getKey(stockTransaction: StockTransaction): TransactionSummary =
+          TransactionSummary(stockTransaction)
+      })
+      .window(SlidingProcessingTimeWindows.of(Time.seconds(600), Time.seconds(10)))
       .aggregate(new AggregateFunction[StockTransaction, TransactionSummary, TransactionSummary]() {
         override def createAccumulator(): TransactionSummary = TransactionSummary("", "", "", 0, 0)
 
@@ -52,7 +51,6 @@ class AppRuntime2(config: Config) {
             tradingCount = a.tradingCount + b.tradingCount
           )
       })
-      .print()
 
     val financialNewsStream = env.addSource(createFinancialNewsSource())
       .flatMap(new HandleDeserializationError[KafkaRecord[TombstoneOr[FinancialNews]]]())
@@ -63,17 +61,18 @@ class AppRuntime2(config: Config) {
         }
       })
 
-    //    transactionSummaryStream
-    //      .connect(financialNewsStream)
-    //      .map(TransactionSummaryAndFinancialNews.fromTransactionSummary, TransactionSummaryAndFinancialNews.fromFinancialNews)
-    //      .keyBy(_.industry)
-    //      .reduce(TransactionSummaryAndFinancialNews.aggregate _)
-    //      .flatMap(transactionAndNews => {
-    //        (transactionAndNews.maybeTransactionSummary, transactionAndNews.maybeFinancialNews) match {
-    //          case (Some(transaction), Some(news)) => Vector(s"${transaction.customerId} purchased ${transaction.totalShares} related to news: ${news.content}")
-    //          case _ => Vector()
-    //        }
-    //      })
+    transactionSummaryStream
+      .connect(financialNewsStream)
+      .map(TransactionSummaryAndFinancialNews.fromTransactionSummary, TransactionSummaryAndFinancialNews.fromFinancialNews)
+      .keyBy(_.industry)
+      .reduce(TransactionSummaryAndFinancialNews.aggregate _)
+      .flatMap(transactionAndNews => {
+        (transactionAndNews.maybeTransactionSummary, transactionAndNews.maybeFinancialNews) match {
+          case (Some(transaction), Some(news)) => Vector(s"${transaction.customerId} purchased ${transaction.totalShares} related to news: ${news.content}")
+          case _ => Vector()
+        }
+      })
+      .print()
 
     val _ = env.execute(config.appName)
   }
@@ -128,7 +127,7 @@ class AppRuntime2(config: Config) {
 
   private def createWaterMarkStrategy(): WatermarkStrategy[StockTransaction] =
     WatermarkStrategy
-      .forBoundedOutOfOrderness[StockTransaction](Duration.ofSeconds(10))
+      .forBoundedOutOfOrderness[StockTransaction](Duration.ofSeconds(60))
       .withTimestampAssigner(new SerializableTimestampAssigner[StockTransaction] {
         override def extractTimestamp(element: StockTransaction, recordTimestamp: Long): Long =
           element.transactionTimestamp.toEpochSecond(ZoneOffset.ofHours(8))

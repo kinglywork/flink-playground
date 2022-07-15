@@ -8,7 +8,7 @@ resolvers ++= Seq(
   "confluent" at "https://packages.confluent.io/maven/"
 )
 
-Compile / mainClass := Some("com.playground.Main")
+Compile / mainClass := Some("com.playground.stock.Local")
 
 val catsVersion = "2.7.0"
 val flinkVersion = "1.13.6"
@@ -22,8 +22,8 @@ val javaFakerVersion = "1.0.2"
 
 libraryDependencies ++= Seq(
   "org.typelevel"                 %% "cats-core"                      % catsVersion,
-  "org.apache.flink"              %% "flink-streaming-scala"          % flinkVersion                % "provided",
-  "org.apache.flink"              %% "flink-clients"                  % flinkVersion                % "provided",
+  "org.apache.flink"              %% "flink-streaming-scala"          % flinkVersion,//                % "provided",
+  "org.apache.flink"              %% "flink-clients"                  % flinkVersion,//                % "provided",
   "org.apache.flink"              %% "flink-connector-kafka"          % flinkVersion,
   "org.apache.flink"              %% "flink-connector-elasticsearch7" % flinkVersion,
   "com.github.fd4s"               %% "vulcan"                         % vulcanVersion,

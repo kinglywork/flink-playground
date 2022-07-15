@@ -1,7 +1,6 @@
 package com.playground.stock
 
 //import com.playground.fake.StockTransactionProducer
-//
 //import scala.concurrent.ExecutionContext.Implicits.global
 //import scala.concurrent.Future
 
