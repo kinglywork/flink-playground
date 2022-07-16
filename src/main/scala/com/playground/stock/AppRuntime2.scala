@@ -20,6 +20,24 @@ class AppRuntime2(config: Config) {
   def start(): Unit = {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
+    val sumSharesAggregation = new AggregateFunction[StockTransaction, TransactionSummary, TransactionSummary]() {
+      override def createAccumulator(): TransactionSummary = TransactionSummary("", "", "", 0, 0)
+
+      override def add(stockTransaction: StockTransaction, accumulator: TransactionSummary): TransactionSummary =
+        TransactionSummary(stockTransaction).copy(
+          totalShares = stockTransaction.shares + accumulator.totalShares,
+          tradingCount = accumulator.tradingCount + 1
+        )
+
+      override def getResult(accumulator: TransactionSummary): TransactionSummary = accumulator
+
+      override def merge(a: TransactionSummary, b: TransactionSummary): TransactionSummary =
+        a.copy(
+          totalShares = a.totalShares + b.totalShares,
+          tradingCount = a.tradingCount + b.tradingCount
+        )
+    }
+
     val transactionSummaryStream = env.addSource(createStockTransactionSource())
       .flatMap(new HandleDeserializationError[KafkaRecord[TombstoneOr[StockTransaction]]]())
       .flatMap(record => {
@@ -34,23 +52,7 @@ class AppRuntime2(config: Config) {
           TransactionSummary(stockTransaction)
       })
       .window(SlidingProcessingTimeWindows.of(Time.seconds(600), Time.seconds(10)))
-      .aggregate(new AggregateFunction[StockTransaction, TransactionSummary, TransactionSummary]() {
-        override def createAccumulator(): TransactionSummary = TransactionSummary("", "", "", 0, 0)
-
-        override def add(stockTransaction: StockTransaction, accumulator: TransactionSummary): TransactionSummary =
-          TransactionSummary(stockTransaction).copy(
-            totalShares = stockTransaction.shares + accumulator.totalShares,
-            tradingCount = accumulator.tradingCount + 1
-          )
-
-        override def getResult(accumulator: TransactionSummary): TransactionSummary = accumulator
-
-        override def merge(a: TransactionSummary, b: TransactionSummary): TransactionSummary =
-          a.copy(
-            totalShares = a.totalShares + b.totalShares,
-            tradingCount = a.tradingCount + b.tradingCount
-          )
-      })
+      .aggregate(sumSharesAggregation)
 
     val financialNewsStream = env.addSource(createFinancialNewsSource())
       .flatMap(new HandleDeserializationError[KafkaRecord[TombstoneOr[FinancialNews]]]())
