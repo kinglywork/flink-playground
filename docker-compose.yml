@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   dev:
-    image: 639347700193.dkr.ecr.ap-southeast-2.amazonaws.com/property-stream/sold-transactions-projection-dependencies:latest
+    image: 639347700193.dkr.ecr.ap-southeast-2.amazonaws.com/property-stream/stock-transactions-dependencies:latest
     command: bash
     container_name: dev
     working_dir: /work
@@ -16,7 +16,7 @@ services:
       AWS_DEFAULT_REGION: ap-southeast-2
       AWS_REGION: ap-southeast-2
       BUILD_NUMBER: ${BUILDKITE_BUILD_NUMBER:-local}
-      APP_NAME: sold-transactions-projection-local
+      APP_NAME: stock-transactions-local
       APP_VERSION: 0
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KAFKA_BOOTSTRAP_SERVERS: broker:9092

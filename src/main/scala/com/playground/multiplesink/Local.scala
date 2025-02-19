@@ -8,7 +8,7 @@ package com.playground.multiplesink
 object Local {
   def main(args: Array[String]): Unit = {
     val config: Config = Config(
-      appName = "sold-transaction-projection-local",
+      appName = "stock-transaction-local",
       version = "0.0.1",
       schemaRegistryUrl = "http://localhost:8081",
       kafkaBootstrapServers = "localhost:39092",
