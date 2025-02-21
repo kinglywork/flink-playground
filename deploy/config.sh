@@ -11,7 +11,7 @@ VERSION="${MAJOR_VERSION}-${MINOR_VERSION}"
 ENVIRONMENT="${ENVIRONMENT:-prod}"
 ENVIRONMENT_SUFFIX=""
 SCHEMA_REGISTRY_URL="https://schema-registry"
-KAFKA_BOOTSTRAP_SERVERS="b-1.kafka-server.aaaaaa.c4.kafka.ap-southeast-2.amazonaws.com:9094,b-2.kafka-server.bbbbbb.c4.kafka.ap-southeast-2.amazonaws.com:9094,b-3.kafka-server.cccccc.c4.kafka.ap-southeast-2.amazonaws.com:9094"
+KAFKA_BOOTSTRAP_SERVERS="b-1.kafka-server.aaaaaa.c4.kafka.ap-southeast-2.amazonaws.com:9092,b-2.kafka-server.bbbbbb.c4.kafka.ap-southeast-2.amazonaws.com:9092,b-3.kafka-server.cccccc.c4.kafka.ap-southeast-2.amazonaws.com:9092"
 VPC_JSON_SETTINGS='{ "SubnetIds": ["subnet-111", "subnet-222", "subnet-333"], "SecurityGroupIds": ["sg-888"] }'
 ES_SERVER="https://es-server"
 
@@ -21,7 +21,7 @@ fi
 
 if [ "$ENVIRONMENT" == "dev" ]; then
   SCHEMA_REGISTRY_URL="https://schema-registry-dev"
-  KAFKA_BOOTSTRAP_SERVERS="b-1.kafka-server-dev.aaaaaa.c4.kafka.ap-southeast-2.amazonaws.com:9094,b-2.kafka-server-dev.bbbbbb.c4.kafka.ap-southeast-2.amazonaws.com:9094,b-3.kafka-server-dev.cccccc.c4.kafka.ap-southeast-2.amazonaws.com:9094"
+  KAFKA_BOOTSTRAP_SERVERS="b-1.kafka-server-dev.aaaaaa.c4.kafka.ap-southeast-2.amazonaws.com:9092,b-2.kafka-server-dev.bbbbbb.c4.kafka.ap-southeast-2.amazonaws.com:9092,b-3.kafka-server-dev.cccccc.c4.kafka.ap-southeast-2.amazonaws.com:9092"
   VPC_JSON_SETTINGS='{ "SubnetIds": ["subnet-444", "subnet-555", "subnet-666"], "SecurityGroupIds": ["sg-999"] }'
   ES_SERVER="https://es-server-dev"
 fi
